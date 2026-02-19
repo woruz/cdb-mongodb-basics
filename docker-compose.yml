@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    container_name: cdb_mongodb_basics
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URL=mongodb://libraryUser:libraryPass@mongo:27017/libraryDB?authSource=libraryDB
+      - PORT=3000
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
