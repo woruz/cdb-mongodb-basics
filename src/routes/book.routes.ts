@@ -17,6 +17,14 @@ router.get("/author/:authorId", async (req, res) => {
   res.json(books);
 });
 
+// List books by genre
+router.get("/genre/:genreId", async (req, res) => {
+  const books = await Book.aggregate([
+    { $match: { genres: new mongoose.Types.ObjectId(req.params.genreId) } },
+  ]);
+  res.json(books);
+});
+
 // Fetch single book with author, genres & total books count
 router.get("/:id", async (req, res) => {
   const book = await Book.aggregate([
@@ -32,12 +40,53 @@ router.get("/:id", async (req, res) => {
     { $unwind: "$author" },
     {
       $lookup: {
+        from: "books",
+        localField: "author._id",
+        foreignField: "author",
+        as: "authorBooks",
+      },
+    },
+    {
+      $addFields: {
+        "author.totalBooks": { $size: "$authorBooks" },
+      },
+    },
+    {
+      $lookup: {
         from: "genres",
         localField: "genres",
         foreignField: "_id",
         as: "genres",
       },
     },
+    { $unwind: "$genres" },
+    {
+      $lookup: {
+        from: "books",
+        localField: "genres._id",
+        foreignField: "genres",
+        as: "genreBooks",
+      },
+    },
+    {
+      $addFields: {
+        "genres.totalBooks": { $size: "$genreBooks" },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        title: { $first: "$title" },
+        author: { $first: "$author" },
+        genres: { $push: "$genres" },
+      },
+    },
+    {
+      $project: {
+        authorBooks: 0,
+        genreBooks: 0,
+      },
+    }
   ]);
 
   res.json(book[0]);
